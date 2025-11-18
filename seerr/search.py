@@ -14,7 +14,13 @@ from loguru import logger
 from fuzzywuzzy import fuzz
 
 from seerr.config import TORRENT_FILTER_REGEX, DISCREPANCY_REPO_FILE
-from seerr.browser import driver, click_show_more_results, check_red_buttons, prioritize_buttons_in_box
+from seerr.browser import (
+    driver,
+    click_show_more_results,
+    check_red_buttons,
+    prioritize_buttons_in_box,
+    RESULT_BOX_XPATH,
+)
 from seerr.utils import (
     clean_title,
     normalize_title,
@@ -262,7 +268,7 @@ def search_on_debrid(imdb_id, movie_title, media_type, driver, extra_data=None):
                             # Re-locate the result boxes after navigating to the new URL
                             try:
                                 result_boxes = WebDriverWait(driver, 5).until(
-                                    EC.presence_of_all_elements_located((By.XPATH, "//div[contains(@class, 'border-black')]"))
+                                    EC.presence_of_all_elements_located((By.XPATH, RESULT_BOX_XPATH))
                                 )
                             except TimeoutException:
                                 logger.warning(f"No result boxes found for season {season}. Skipping.")
@@ -272,7 +278,7 @@ def search_on_debrid(imdb_id, movie_title, media_type, driver, extra_data=None):
                                 try:
                                     logger.info(f"Making one more attempt to find result boxes for season {season}...")
                                     result_boxes = WebDriverWait(driver, 3).until(
-                                        EC.presence_of_all_elements_located((By.XPATH, "//div[contains(@class, 'border-black')]"))
+                                        EC.presence_of_all_elements_located((By.XPATH, RESULT_BOX_XPATH))
                                     )
                                     logger.info(f"Found {len(result_boxes)} result boxes for season {season} on second attempt")
                                 except TimeoutException:
@@ -451,7 +457,7 @@ def search_on_debrid(imdb_id, movie_title, media_type, driver, extra_data=None):
                     # Re-locate the result boxes after navigating to the new URL
                     try:
                         result_boxes = WebDriverWait(driver, 5).until(
-                            EC.presence_of_all_elements_located((By.XPATH, "//div[contains(@class, 'border-black')]"))
+                            EC.presence_of_all_elements_located((By.XPATH, RESULT_BOX_XPATH))
                         )
                     except TimeoutException:
                         logger.warning(f"No result boxes found. Skipping.")
@@ -461,7 +467,7 @@ def search_on_debrid(imdb_id, movie_title, media_type, driver, extra_data=None):
                         try:
                             logger.info("Making one more attempt to find result boxes.")
                             result_boxes = WebDriverWait(driver, 3).until(
-                                EC.presence_of_all_elements_located((By.XPATH, "//div[contains(@class, 'border-black')]"))
+                                EC.presence_of_all_elements_located((By.XPATH, RESULT_BOX_XPATH))
                             )
                             logger.info(f"Found {len(result_boxes)} result boxes on second attempt")
                         except TimeoutException:

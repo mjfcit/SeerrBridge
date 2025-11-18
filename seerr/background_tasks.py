@@ -23,7 +23,13 @@ from seerr.config import (
     ENABLE_SHOW_SUBSCRIPTION_TASK,
     TORRENT_FILTER_REGEX
 )
-from seerr.browser import driver, click_show_more_results, check_red_buttons, prioritize_buttons_in_box
+from seerr.browser import (
+    driver,
+    click_show_more_results,
+    check_red_buttons,
+    prioritize_buttons_in_box,
+    RESULT_BOX_XPATH,
+)
 from seerr.overseerr import get_overseerr_media_requests, mark_completed
 from seerr.trakt import get_media_details_from_trakt, get_season_details_from_trakt, check_next_episode_aired
 from seerr.utils import parse_requested_seasons, normalize_season, extract_season, clean_title
@@ -680,7 +686,7 @@ async def check_show_subscriptions():
                 # Process uncached episode
                 try:
                     result_boxes = WebDriverWait(browser_driver, 10).until(
-                        EC.presence_of_all_elements_located((By.XPATH, "//div[contains(@class, 'border-black')]"))
+                        EC.presence_of_all_elements_located((By.XPATH, RESULT_BOX_XPATH))
                     )
                     episode_confirmed = False
 
@@ -887,7 +893,7 @@ async def search_individual_episodes(imdb_id, movie_title, season_number, season
             # Second pass: Process uncached episodes
             try:
                 result_boxes = WebDriverWait(driver, 10).until(
-                    EC.presence_of_all_elements_located((By.XPATH, "//div[contains(@class, 'border-black')]"))
+                    EC.presence_of_all_elements_located((By.XPATH, RESULT_BOX_XPATH))
                 )
                 episode_confirmed = False
                 

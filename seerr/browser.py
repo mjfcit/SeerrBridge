@@ -36,6 +36,14 @@ library_stats = {
     "total_size_tb": 0.0,
     "last_updated": None
 }
+CASE_INSENSITIVE_TEXT_EXPR = "translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz')"
+INSTANT_RD_BUTTON_XPATH = f".//button[contains({CASE_INSENSITIVE_TEXT_EXPR}, 'instant rd')]"
+DL_WITH_RD_BUTTON_XPATH = f".//button[contains({CASE_INSENSITIVE_TEXT_EXPR}, 'dl with rd')]"
+RESULT_BOX_XPATH = (
+    f"//div[.//h2 and (.//button[contains({CASE_INSENSITIVE_TEXT_EXPR}, 'instant rd')] "
+    f"or .//button[contains({CASE_INSENSITIVE_TEXT_EXPR}, 'dl with rd')])]"
+)
+RD_READY_BUTTON_XPATH = f"//button[contains({CASE_INSENSITIVE_TEXT_EXPR}, 'rd (100%)')]"
 def get_latest_chrome_driver():
     """
     Fetch the latest stable Chrome driver from Google's Chrome for Testing.
@@ -398,6 +406,23 @@ def click_show_more_results(driver, logger, max_attempts=3, wait_between=3, init
             logger.warning(f"Error clicking 'Show More Results' button on attempt {attempt + 1}: {e}. Proceeding anyway.")
             break  # Exit on other errors too
 
+def find_instant_rd_button(result_box):
+    """
+    Attempt to locate the Instant RD button using modern and legacy selectors.
+    """
+    instant_rd_selectors = [
+        INSTANT_RD_BUTTON_XPATH,
+        ".//button[contains(@class, 'bg-green-900/30')]",
+        ".//button[contains(@class, 'bg-red-900/30')]",
+    ]
+    for selector in instant_rd_selectors:
+        try:
+            return result_box.find_element(By.XPATH, selector)
+        except NoSuchElementException:
+            continue
+    raise NoSuchElementException("Instant RD button not found with any known selector.")
+
+
 def prioritize_buttons_in_box(result_box):
     """
     Prioritize buttons within a result box. Clicks the 'Instant RD' or 'DL with RD' button
@@ -411,7 +436,7 @@ def prioritize_buttons_in_box(result_box):
     """
     try:
         # Attempt to locate the 'Instant RD' button
-        instant_rd_button = result_box.find_element(By.XPATH, ".//button[contains(@class, 'bg-green-900/30')]")
+        instant_rd_button = find_instant_rd_button(result_box)
         logger.info("Located 'Instant RD' button.")
 
         # Attempt to click the button and wait for a state change
@@ -425,7 +450,7 @@ def prioritize_buttons_in_box(result_box):
         logger.warning("Stale element reference encountered for 'Instant RD' button. Retrying...")
         # Retry once by re-locating the button
         try:
-            instant_rd_button = result_box.find_element(By.XPATH, ".//button[contains(@class, 'bg-green-900/30')]")
+            instant_rd_button = find_instant_rd_button(result_box)
             if attempt_button_click_with_state_check(instant_rd_button, result_box):
                 return True
         except Exception as e:
@@ -433,7 +458,7 @@ def prioritize_buttons_in_box(result_box):
 
     try:
         # If the 'Instant RD' button is not found, try to locate the 'DL with RD' button
-        dl_with_rd_button = result_box.find_element(By.XPATH, ".//button[contains(text(), 'DL with RD')]")
+        dl_with_rd_button = result_box.find_element(By.XPATH, DL_WITH_RD_BUTTON_XPATH)
         logger.info("Located 'DL with RD' button.")
 
         # Attempt to click the button and wait for a state change
@@ -512,68 +537,63 @@ def check_red_buttons(driver, movie_title, normalized_seasons, confirmed_seasons
    
     confirmation_flag = False
     try:
-        all_red_buttons_elements = driver.find_elements(By.XPATH, "//button[contains(@class, 'bg-red-900/30')]")
-        # Filter out "Report" buttons and buttons that don't contain "RD (100%)"
-        red_buttons_elements = [
-            button for button in all_red_buttons_elements
-            if "Report" not in button.text and "RD (100%)" in button.text
+        ready_buttons_elements = [
+            button for button in driver.find_elements(By.XPATH, RD_READY_BUTTON_XPATH)
+            if "report" not in button.text.lower()
         ]
-        logger.info(f"Found {len(red_buttons_elements)} red button(s) with 'RD (100%)' without 'Report'. Verifying titles.")
-        for i, red_button_element in enumerate(red_buttons_elements, start=1):
+        logger.info(f"Found {len(ready_buttons_elements)} RD (100%) button(s) without 'Report'. Verifying titles.")
+        for i, ready_button_element in enumerate(ready_buttons_elements, start=1):
             try:
-                if "Report" in red_button_element.text:
-                    continue
-               
                 # Double-check that this is actually an RD (100%) button
-                button_text = red_button_element.text.strip()
+                button_text = ready_button_element.text.strip()
                 if "RD (100%)" not in button_text:
-                    logger.warning(f"Red button {i} does not contain 'RD (100%)' - text: '{button_text}'. Skipping.")
+                    logger.warning(f"RD (100%) candidate button {i} missing expected text - got '{button_text}'. Skipping.")
                     continue
                
-                logger.info(f"Checking red button {i} with text: '{button_text}'...")
+                logger.info(f"Checking RD (100%) button {i} with text: '{button_text}'...")
                 try:
-                    red_button_title_element = red_button_element.find_element(By.XPATH, ".//ancestor::div[contains(@class, 'border-2')]//h2")
-                    red_button_title_text = red_button_title_element.text.strip()
+                    ready_button_title_element = ready_button_element.find_element(By.XPATH, ".//ancestor::div[contains(@class, 'border-2')]//h2")
+                    ready_button_title_text = ready_button_title_element.text.strip()
                     # Use original title first, clean it for comparison
-                    red_button_title_cleaned = clean_title(red_button_title_text.split('(')[0].strip(), target_lang='en')
+                    ready_button_title_cleaned = clean_title(ready_button_title_text.split('(')[0].strip(), target_lang='en')
                     movie_title_cleaned = clean_title(movie_title.split('(')[0].strip(), target_lang='en')
                     # Extract year for comparison
-                    red_button_year = extract_year(red_button_title_text, ignore_resolution=True)
+                    ready_button_year = extract_year(ready_button_title_text, ignore_resolution=True)
                     expected_year = extract_year(movie_title)
-                    logger.info(f"Red button {i} title: {red_button_title_cleaned}, Expected movie title: {movie_title_cleaned}")
+                    logger.info(f"RD (100%) button {i} title: {ready_button_title_cleaned}, Expected movie title: {movie_title_cleaned}")
                     # Fuzzy matching with a slightly lower threshold for robustness
-                    title_match_ratio = fuzz.partial_ratio(red_button_title_cleaned.lower(), movie_title_cleaned.lower())
+                    title_match_ratio = fuzz.partial_ratio(ready_button_title_cleaned.lower(), movie_title_cleaned.lower())
                     title_match_threshold = 65  # Lowered from 69 to allow more flexibility
                     title_matched = title_match_ratio >= title_match_threshold
                     # Year comparison (skip for TV shows or if missing)
                     year_matched = True
                     if not is_tv_show and red_button_year and expected_year:
-                        year_matched = abs(red_button_year - expected_year) <= 1
+                        year_matched = abs(ready_button_year - expected_year) <= 1
                     # Episode and season matching (for TV shows)
                     season_matched = False
                     episode_matched = True
                     if is_tv_show and normalized_seasons:
-                        found_season = extract_season(red_button_title_text)
+                        found_season = extract_season(ready_button_title_text)
                         found_season_normalized = f"Season {found_season}" if found_season else None
                         season_matched = found_season_normalized in normalized_seasons if found_season_normalized else False
                         if episode_id:
-                            episode_matched = episode_id.lower() in red_button_title_text.lower()
+                            episode_matched = episode_id.lower() in ready_button_title_text.lower()
                     if title_matched and year_matched and (not is_tv_show or (season_matched and episode_matched)):
-                        logger.info(f"Found a match on red button {i} - {red_button_title_cleaned} with RD (100%). Marking as confirmed.")
+                        logger.info(f"Found a match on RD (100%) button {i} - {ready_button_title_cleaned}. Marking as confirmed.")
                         confirmation_flag = True
                         if is_tv_show and found_season_normalized and not episode_id:
                             confirmed_seasons.add(found_season_normalized)
                         return confirmation_flag, confirmed_seasons  # Early exit on match
                     else:
-                        logger.warning(f"No match for red button {i}: Title - {red_button_title_cleaned}, Year - {red_button_year}, Episode - {episode_id}. Moving to next red button.")
+                        logger.warning(f"No match for RD (100%) button {i}: Title - {ready_button_title_cleaned}, Year - {ready_button_year}, Episode - {episode_id}. Moving to next button.")
                 except NoSuchElementException as e:
-                    logger.warning(f"Could not find title associated with red button {i}: {e}")
+                    logger.warning(f"Could not find title associated with RD (100%) button {i}: {e}")
                     continue
             except StaleElementReferenceException as e:
-                logger.warning(f"Stale element reference encountered for red button {i}: {e}. Skipping this button.")
+                logger.warning(f"Stale element reference encountered for RD (100%) button {i}: {e}. Skipping this button.")
                 continue
     except NoSuchElementException:
-        logger.info("No red buttons with 'RD (100%)' detected. Proceeding with optional fallback.")
+        logger.info("No RD (100%) buttons detected. Proceeding with optional fallback.")
     return confirmation_flag, confirmed_seasons
 
 def refresh_library_stats():
