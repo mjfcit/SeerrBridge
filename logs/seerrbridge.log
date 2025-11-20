@@ -1,0 +1,4 @@
+2025-11-19 11:29:23.918 | ERROR    | seerr.config:load_config:75 - REFRESH_INTERVAL_MINUTES environment variable is not a valid number. Using default of 60 minutes.
+2025-11-19 11:29:23.918 | ERROR    | seerr.config:load_config:80 - OVERSEERR_API_BASE_URL environment variable is not set.
+2025-11-19 12:16:22.438 | ERROR    | seerr.config:load_config:75 - REFRESH_INTERVAL_MINUTES environment variable is not a valid number. Using default of 60 minutes.
+2025-11-19 12:16:22.438 | ERROR    | seerr.config:load_config:80 - OVERSEERR_API_BASE_URL environment variable is not set.

@@ -19,8 +19,8 @@ from seerr.browser import (
     click_show_more_results,
     check_red_buttons,
     prioritize_buttons_in_box,
-    RESULT_BOX_XPATH,
 )
+from seerr.constants import RESULT_BOX_XPATH
 from seerr.utils import (
     clean_title,
     normalize_title,
@@ -50,6 +50,7 @@ def search_on_debrid(imdb_id, movie_title, media_type, driver, extra_data=None):
         bool: True if media was found and processed, False otherwise
     """
     logger.info(f"Starting Selenium automation for IMDb ID: {imdb_id}, Media Type: {media_type}")
+    logger.info("[Patched selectors] Using updated RESULT_BOX_XPATH to match both button and div Instant RD elements.")
     
     # Use the imported driver module if the passed driver is None
     from seerr.browser import driver as browser_driver

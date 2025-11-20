@@ -28,6 +28,13 @@ from seerr.config import (
     MAX_MOVIE_SIZE,
     MAX_EPISODE_SIZE
 )
+from seerr.constants import (
+    CASE_INSENSITIVE_TEXT_EXPR,
+    INSTANT_RD_BUTTON_XPATH,
+    DL_WITH_RD_BUTTON_XPATH,
+    RESULT_BOX_XPATH,
+    RD_READY_BUTTON_XPATH,
+)
 # Global driver variable to hold the Selenium WebDriver
 driver = None
 # Global library stats
@@ -36,14 +43,6 @@ library_stats = {
     "total_size_tb": 0.0,
     "last_updated": None
 }
-CASE_INSENSITIVE_TEXT_EXPR = "translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz')"
-INSTANT_RD_BUTTON_XPATH = f".//button[contains({CASE_INSENSITIVE_TEXT_EXPR}, 'instant rd')]"
-DL_WITH_RD_BUTTON_XPATH = f".//button[contains({CASE_INSENSITIVE_TEXT_EXPR}, 'dl with rd')]"
-RESULT_BOX_XPATH = (
-    f"//div[.//h2 and (.//button[contains({CASE_INSENSITIVE_TEXT_EXPR}, 'instant rd')] "
-    f"or .//button[contains({CASE_INSENSITIVE_TEXT_EXPR}, 'dl with rd')])]"
-)
-RD_READY_BUTTON_XPATH = f"//button[contains({CASE_INSENSITIVE_TEXT_EXPR}, 'rd (100%)')]"
 def get_latest_chrome_driver():
     """
     Fetch the latest stable Chrome driver from Google's Chrome for Testing.

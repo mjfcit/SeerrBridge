@@ -28,8 +28,8 @@ from seerr.browser import (
     click_show_more_results,
     check_red_buttons,
     prioritize_buttons_in_box,
-    RESULT_BOX_XPATH,
 )
+from seerr.constants import RESULT_BOX_XPATH
 from seerr.overseerr import get_overseerr_media_requests, mark_completed
 from seerr.trakt import get_media_details_from_trakt, get_season_details_from_trakt, check_next_episode_aired
 from seerr.utils import parse_requested_seasons, normalize_season, extract_season, clean_title
